@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-PGN → Multi-FASTA | Xadrez → DNA</title>
+  <style>
+    :root {
+      --bg: #101216;
+      --panel: #191d25;
+      --text: #eef2f7;
+      --muted: #aeb7c4;
+      --accent: #78d6b4;
+      --light: #d8c7a3;
+      --dark: #6b4b34;
+      --border: #303849;
+      --danger: #ff8b8b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1a2330 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    main { max-width: 1280px; margin: 0 auto; padding: 28px; }
+    h1, h2 { margin-top: 0; }
+    h1 { font-size: clamp(1.8rem, 3vw, 3rem); margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); max-width: 1000px; margin-bottom: 24px; }
+    .grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 20px; align-items: start; }
+    @media (max-width: 920px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: rgba(25, 29, 37, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 18px 45px rgba(0,0,0,0.25);
+    }
+    textarea, input, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #0f131b;
+      color: var(--text);
+      padding: 12px;
+      font: inherit;
+    }
+    textarea {
+      min-height: 275px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92rem;
+    }
+    label { display: block; color: var(--muted); margin-bottom: 6px; font-size: 0.95rem; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+    @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      background: var(--accent);
+      color: #07110d;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    .buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .secondary { background: #2d3546; color: var(--text); }
+    .danger { background: #47303a; color: #ffd8d8; }
+    pre {
+      background: #0f131b;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9rem;
+      max-height: 420px;
+    }
+    .status { margin-top: 12px; color: var(--muted); min-height: 1.5em; }
+    .status.error { color: var(--danger); }
+    .status.ok { color: var(--accent); }
+    .board-wrap {
+      display: grid;
+      grid-template-columns: 24px minmax(320px, 1fr);
+      grid-template-rows: minmax(320px, 1fr) 24px;
+      gap: 4px;
+      user-select: none;
+    }
+    .board {
+      grid-column: 2;
+      grid-row: 1;
+      aspect-ratio: 1 / 1;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      border: 2px solid #0b0d12;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .sq {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 2px;
+      font-weight: 800;
+      text-shadow: 0 1px 2px rgba(0,0,0,.35);
+    }
+    .sq.light { background: var(--light); color: #1d1710; }
+    .sq.dark { background: var(--dark); color: #fff6e8; }
+    .coord { font-size: clamp(0.7rem, 1.8vw, 1rem); opacity: .95; }
+    .codon {
+      font-size: clamp(0.62rem, 1.55vw, 0.9rem);
+      letter-spacing: 0.04em;
+      opacity: .92;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .rank-labels {
+      grid-column: 1;
+      grid-row: 1;
+      display: grid;
+      grid-template-rows: repeat(8, 1fr);
+      align-items: center;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .file-labels {
+      grid-column: 2;
+      grid-row: 2;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      text-align: center;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 6px; text-align: left; vertical-align: top; }
+    th { color: var(--accent); font-weight: 800; }
+    .table-wrap { max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
+    .small { color: var(--muted); font-size: 0.9rem; }
+    details { margin-top: 12px; color: var(--muted); }
+    summary { cursor: pointer; color: var(--accent); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Multi-PGN → Multi-FASTA | Xadrez → DNA</h1>
+    <p class="subtitle">
+      Pipeline interno: <strong>PGN → UCI → FASTA</strong>. Cole um arquivo PGN contendo uma ou várias partidas.
+      Cada partida vira uma sequência FASTA independente. Cada meio-lance gera dois códons: casa de origem + casa de destino.
+      Promoções são sinalizadas por janelas extras impossíveis do tipo destino → destino, sem quebrar a leitura em pares de códons.
+    </p>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Entrada</h2>
+        <label for="pgn">Cole uma ou várias partidas em PGN</label>
+        <textarea id="pgn">[Event "Example 1"]
+[White "White"]
+[Black "Black"]
+[Result "1-0"]
+
+1.d4 Nf6 2.c4 e6 3.Nc3 Bb4 4.e3 O-O 5.Bd3 b6 6.Ne2 Bb7 7.O-O d5 8.a3 Bxc3
+9.bxc3 c5 10.f3 Qc7 11.cxd5 exd5 12.Ng3 Nc6 13.Bb2 Rad8 14.e4 dxe4 15.fxe4 cxd4
+16.cxd4 Nxd4 17.Rxf6 gxf6 18.Nf5 Qf4 19.Bc1 Nf3+ 20.gxf3 Qc7 21.Kh1 Kh8 22.Bb2 Qc6
+23.Qf1 1-0
+
+[Event "Example 2"]
+[White "White"]
+[Black "Black"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *</textarea>
+
+        <div class="row">
+          <div>
+            <label for="headerName">Prefixo das sequências FASTA</label>
+            <input id="headerName" value="chess_to_dna" />
+          </div>
+          <div>
+            <label for="mapMode">Mapa casa → códon</label>
+            <select id="mapMode">
+              <option value="a1">a1=AAA; a2=AAC; ...; h8=TTT</option>
+              <option value="a8">a8=AAA; b8=AAC; ...; h1=TTT</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="maxFullMoves">Máximo de lances completos por partida</label>
+            <input id="maxFullMoves" type="number" min="1" step="1" placeholder="Sem limite" />
+          </div>
+          <div>
+            <label for="limitHelp">Interpretação</label>
+            <input id="limitHelp" value="10 = até 20 meio-lances" readonly />
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button id="convertBtn">Converter PGN → Multi-FASTA</button>
+          <button class="secondary" id="copyFastaBtn">Copiar FASTA</button>
+          <button class="secondary" id="downloadFastaBtn">Baixar .fasta</button>
+          <button class="secondary" id="copyMetadataBtn">Copiar metadados TSV</button>
+          <button class="secondary" id="downloadMetadataBtn">Baixar .tsv</button>
+          <button class="danger" id="clearBtn">Limpar</button>
+        </div>
+        <div id="status" class="status"></div>
+      </section>
+
+      <section class="card">
+        <h2>Tabuleiro de referência</h2>
+        <div class="board-wrap">
+          <div class="rank-labels" id="rankLabels"></div>
+          <div class="board" id="board"></div>
+          <div class="file-labels" id="fileLabels"></div>
+        </div>
+        <p class="small">O mapa é bijetivo: 64 casas ↔ 64 códons.</p>
+      </section>
+    </div>
+
+    <div class="grid" style="margin-top:20px;">
+      <section class="card">
+        <h2>Multi-FASTA</h2>
+        <pre id="fastaOut"></pre>
+        <details>
+          <summary>Ver UCI intermediário</summary>
+          <pre id="uciOut"></pre>
+        </details>
+        <details>
+          <summary>Ver partidas rejeitadas / erros</summary>
+          <pre id="errorOut"></pre>
+        </details>
+        <details>
+          <summary>Ver metadados TSV</summary>
+          <pre id="metadataOut"></pre>
+        </details>
+        <details>
+          <summary>Ver testes internos</summary>
+          <pre id="testOut"></pre>
+        </details>
+      </section>
+
+      <section class="card">
+        <h2>Resumo das sequências</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>ID FASTA</th>
+                <th>Evento</th>
+                <th>Brancas</th>
+                <th>Pretas</th>
+                <th>Lances exportados</th>
+                <th>Lances originais</th>
+                <th>nt</th>
+                <th>Promoções</th>
+              </tr>
+            </thead>
+            <tbody id="summaryBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script>
+    'use strict';
+
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    const ranks = ['1', '2', '3', '4', '5', '6', '7', '8'];
+    const bases = ['A', 'C', 'G', 'T'];
+
+    function allCodons() {
+      const out = [];
+      for (const b1 of bases) {
+        for (const b2 of bases) {
+          for (const b3 of bases) {
+            out.push(b1 + b2 + b3);
+          }
+        }
+      }
+      return out;
+    }
+
+    function buildSquareCodonMap(mode = 'a1') {
+      const codons = allCodons();
+      const squares = [];
+
+      if (mode === 'a1') {
+        for (const f of files) {
+          for (const r of ranks) {
+            squares.push(f + r);
+          }
+        }
+      } else {
+        for (let ri = 7; ri >= 0; ri--) {
+          for (const f of files) {
+            squares.push(f + ranks[ri]);
+          }
+        }
+      }
+
+      const map = {};
+      squares.forEach((sq, i) => {
+        map[sq] = codons[i];
+      });
+      return map;
+    }
+
+    function normalizePGN(pgn) {
+      return String(pgn || '')
+        .replace(/\r/g, '')
+        .replace(/0-0-0/g, 'O-O-O')
+        .replace(/0-0/g, 'O-O')
+        .trim();
+    }
+
+    function splitMultiPGN(text) {
+      const normalized = normalizePGN(text);
+      if (!normalized) return [];
+
+      const starts = [];
+      const re = /^\s*\[Event\s+"/gm;
+      let match;
+      while ((match = re.exec(normalized)) !== null) {
+        starts.push(match.index);
+      }
+
+      if (starts.length === 0) return [normalized];
+
+      const games = [];
+      for (let i = 0; i < starts.length; i++) {
+        const start = starts[i];
+        const end = i + 1 < starts.length ? starts[i + 1] : normalized.length;
+        const chunk = normalized.slice(start, end).trim();
+        if (chunk) games.push(chunk);
+      }
+      return games;
+    }
+
+    function parseHeaders(pgn) {
+      const headers = {};
+      const re = /^\s*\[([^\s]+)\s+"([^"]*)"\]\s*$/gm;
+      let match;
+      while ((match = re.exec(pgn)) !== null) {
+        headers[match[1]] = match[2];
+      }
+      return headers;
+    }
+
+    function sanitizeId(text) {
+      return String(text || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^A-Za-z0-9_.-]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .slice(0, 120) || 'game';
+    }
+
+    function makeFastaId(prefix, headers, index) {
+      const cleanPrefix = sanitizeId(prefix || 'cDNA').slice(0, 16) || 'cDNA';
+      return cleanPrefix + '_' + String(index).padStart(4, '0');
+    }
+
+    function parseOnePGNToUCI(pgn) {
+      if (typeof Chess === 'undefined') {
+        throw new Error('A biblioteca chess.js não foi carregada. Tente rodar por http://localhost ou baixar chess.min.js para a mesma pasta.');
+      }
+
+      const chess = new Chess();
+      const ok = chess.load_pgn(normalizePGN(pgn), { sloppy: true });
+      if (!ok) {
+        throw new Error('Não consegui ler este PGN. Verifique se a notação está completa e válida.');
+      }
+
+      return chess.history({ verbose: true }).map((m, i) => ({
+        index: i + 1,
+        san: m.san,
+        from: m.from,
+        to: m.to,
+        promotion: m.promotion || '',
+        uci: m.from + m.to + (m.promotion || '')
+      }));
+    }
+
+    function fastaWrap(seq, width = 80) {
+      const chunks = [];
+      for (let i = 0; i < seq.length; i += width) {
+        chunks.push(seq.slice(i, i + width));
+      }
+      return chunks.join('\n');
+    }
+
+    function promotionRepeatCount(piece) {
+      const table = { n: 1, b: 2, r: 3, q: 4 };
+      return table[piece] || 0;
+    }
+
+    function promotionName(piece) {
+      const table = { n: 'cavalo', b: 'bispo', r: 'torre', q: 'dama' };
+      return table[piece] || '';
+    }
+
+    function moveToDNA(m, map) {
+      const fromCodon = map[m.from];
+      const toCodon = map[m.to];
+      if (!fromCodon || !toCodon) {
+        throw new Error('Movimento com casa inválida: ' + JSON.stringify(m));
+      }
+
+      let dna = fromCodon + toCodon;
+      const repeats = promotionRepeatCount(m.promotion);
+      for (let i = 0; i < repeats; i++) {
+        dna += toCodon + toCodon;
+      }
+      return dna;
+    }
+
+    function getMoveLimit() {
+      const input = document.getElementById('maxFullMoves');
+      const raw = input ? input.value.trim() : '';
+      if (!raw) return null;
+      const parsed = parseInt(raw, 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    }
+
+    function buildRecord(gameText, index, prefix, map, mode, maxFullMoves) {
+      const headers = parseHeaders(gameText);
+      const allMoves = parseOnePGNToUCI(gameText);
+      if (allMoves.length === 0) {
+        throw new Error('Partida sem lances interpretáveis.');
+      }
+
+      const maxHalfMoves = maxFullMoves ? maxFullMoves * 2 : null;
+      const moves = maxHalfMoves ? allMoves.slice(0, maxHalfMoves) : allMoves;
+      const seq = moves.map(m => moveToDNA(m, map)).join('');
+      const id = makeFastaId(prefix, headers, index);
+      const promotionMoves = moves.filter(m => m.promotion).length;
+      const promotionWindows = moves.reduce((sum, m) => sum + promotionRepeatCount(m.promotion), 0);
+      const limitTag = maxFullMoves
+        ? '|max_full_moves=' + maxFullMoves + '|truncated=' + (allMoves.length > moves.length ? 'yes' : 'no')
+        : '|max_full_moves=none';
+
+      const desc = 'moves=' + moves.length + '|nt=' + seq.length;
+
+      return {
+        id,
+        desc,
+        seq,
+        moves,
+        allMovesLength: allMoves.length,
+        headers,
+        promotionMoves,
+        promotionWindows,
+        originalIndex: index,
+        maxFullMoves,
+        truncated: allMoves.length > moves.length,
+        mode
+      };
+    }
+
+    function convert() {
+      const status = document.getElementById('status');
+      status.className = 'status';
+      status.textContent = '';
+
+      try {
+        const pgnText = document.getElementById('pgn').value;
+        const prefix = (document.getElementById('headerName').value.trim() || 'chess_to_dna').replace(/\s+/g, '_');
+        const mode = document.getElementById('mapMode').value;
+        const maxFullMoves = getMoveLimit();
+        const map = buildSquareCodonMap(mode);
+        const games = splitMultiPGN(pgnText);
+
+        if (games.length === 0) {
+          throw new Error('Nenhuma partida encontrada.');
+        }
+
+        const records = [];
+        const errors = [];
+
+        games.forEach((gameText, idx) => {
+          const headers = parseHeaders(gameText);
+          try {
+            records.push(buildRecord(gameText, idx + 1, prefix, map, mode, maxFullMoves));
+          } catch (err) {
+            errors.push({ index: idx + 1, headers, message: err.message });
+          }
+        });
+
+        if (records.length === 0) {
+          document.getElementById('errorOut').textContent = errors.map(formatError).join('\n');
+          throw new Error('Nenhuma partida pôde ser convertida. Veja os erros.');
+        }
+
+        const fasta = records.map(r => '>' + r.id + '|' + r.desc + '
+' + fastaWrap(r.seq)).join('
+
+');
+        const uci = records.map(r => '>' + r.id + '
+' + r.moves.map(m => m.uci).join(' ')).join('
+
+');
+        const metadata = buildMetadataTSV(records);
+
+        document.getElementById('fastaOut').textContent = fasta;
+        document.getElementById('uciOut').textContent = uci;
+        document.getElementById('metadataOut').textContent = metadata;
+        document.getElementById('errorOut').textContent = errors.length ? errors.map(formatError).join('
+') : 'Nenhum erro.';
+        renderSummary(records);
+
+        const totalMoves = records.reduce((sum, r) => sum + r.moves.length, 0);
+        const totalOriginalMoves = records.reduce((sum, r) => sum + r.allMovesLength, 0);
+        const totalNt = records.reduce((sum, r) => sum + r.seq.length, 0);
+        const totalPromotions = records.reduce((sum, r) => sum + r.promotionMoves, 0);
+
+        status.classList.add('ok');
+        status.textContent = 'Convertidas ' + records.length + '/' + games.length + ' partidas; ' +
+          totalMoves + ' meio-lances exportados de ' + totalOriginalMoves + '; ' +
+          totalNt + ' nucleotídeos; ' + totalPromotions + ' promoções.' +
+          (errors.length ? ' Algumas partidas foram rejeitadas.' : '');
+      } catch (err) {
+        status.classList.add('error');
+        status.textContent = err.message;
+      }
+    }
+
+    function formatError(e) {
+      return 'Partida ' + e.index + (e.headers.Event ? ' (' + e.headers.Event + ')' : '') + ': ' + e.message;
+    }
+
+    function tsvEscape(value) {
+      const text = String(value == null ? '' : value).replace(/	/g, ' ').replace(/?
+/g, ' ');
+      return text;
+    }
+
+    function buildMetadataTSV(records) {
+      const header = [
+        'id', 'original_index', 'event', 'site', 'date', 'round', 'white', 'black', 'result', 'eco',
+        'moves_exported', 'moves_original', 'nt', 'max_full_moves', 'truncated',
+        'promotion_moves', 'promotion_marker_windows', 'map', 'scheme', 'promotion_scheme'
+      ];
+
+      const rows = records.map(r => [
+        r.id,
+        r.originalIndex,
+        r.headers.Event || '',
+        r.headers.Site || '',
+        r.headers.Date || '',
+        r.headers.Round || '',
+        r.headers.White || '',
+        r.headers.Black || '',
+        r.headers.Result || '',
+        r.headers.ECO || '',
+        r.moves.length,
+        r.allMovesLength,
+        r.seq.length,
+        r.maxFullMoves || 'none',
+        r.truncated ? 'yes' : 'no',
+        r.promotionMoves,
+        r.promotionWindows,
+        r.mode,
+        'from_to_codons_plus_promotion_repeats',
+        'n1_b2_r3_q4'
+      ]);
+
+      return [header].concat(rows).map(row => row.map(tsvEscape).join('	')).join('
+');
+    }
+
+    function renderSummary(records) {
+      const body = document.getElementById('summaryBody');
+      body.innerHTML = '';
+
+      records.forEach((r, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + (i + 1) + '</td>' +
+          '<td>' + r.id + '</td>' +
+          '<td>' + (r.headers.Event || '') + '</td>' +
+          '<td>' + (r.headers.White || '') + '</td>' +
+          '<td>' + (r.headers.Black || '') + '</td>' +
+          '<td>' + r.moves.length + '</td>' +
+          '<td>' + r.allMovesLength + '</td>' +
+          '<td>' + r.seq.length + '</td>' +
+          '<td>' + r.promotionMoves + '</td>';
+        body.appendChild(tr);
+      });
+    }
+
+    function renderBoard() {
+      const mode = document.getElementById('mapMode').value;
+      const map = buildSquareCodonMap(mode);
+      const board = document.getElementById('board');
+      const rankLabels = document.getElementById('rankLabels');
+      const fileLabels = document.getElementById('fileLabels');
+
+      board.innerHTML = '';
+      rankLabels.innerHTML = '';
+      fileLabels.innerHTML = '';
+
+      for (let r = 8; r >= 1; r--) {
+        const div = document.createElement('div');
+        div.textContent = r;
+        rankLabels.appendChild(div);
+      }
+
+      for (const f of files) {
+        const div = document.createElement('div');
+        div.textContent = f;
+        fileLabels.appendChild(div);
+      }
+
+      for (let r = 8; r >= 1; r--) {
+        for (let fi = 0; fi < 8; fi++) {
+          const f = files[fi];
+          const sq = f + r;
+          const el = document.createElement('div');
+          const isLight = (fi + r) % 2 === 1;
+          el.className = 'sq ' + (isLight ? 'light' : 'dark');
+          el.innerHTML = '<div class="coord">' + sq + '</div><div class="codon">' + map[sq] + '</div>';
+          board.appendChild(el);
+        }
+      }
+    }
+
+    async function copyText(text, statusMsg) {
+      const status = document.getElementById('status');
+      try {
+        await navigator.clipboard.writeText(text || '');
+        status.className = 'status ok';
+        status.textContent = statusMsg;
+      } catch (err) {
+        status.className = 'status error';
+        status.textContent = 'Não consegui copiar automaticamente. Selecione e copie manualmente.';
+      }
+    }
+
+    function downloadText(filename, text) {
+      const blob = new Blob([text || ''], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function runTests() {
+      const out = document.getElementById('testOut');
+      const lines = [];
+
+      function assert(name, condition) {
+        if (!condition) throw new Error(name);
+        lines.push('OK - ' + name);
+      }
+
+      try {
+        const map = buildSquareCodonMap('a1');
+        assert('mapa tem a1=AAA', map.a1 === 'AAA');
+        assert('mapa tem 64 códons únicos', new Set(Object.values(map)).size === 64);
+        assert('e2e4 gera 6 nt', moveToDNA({ from: 'e2', to: 'e4', promotion: '' }, map).length === 6);
+        assert('promoção para dama adiciona 4 janelas destino→destino', moveToDNA({ from: 'e7', to: 'e8', promotion: 'q' }, map).length === 30);
+        assert('fastaWrap usa newline escapado corretamente', fastaWrap('ACGT', 2) === 'AC\nGT');
+        assert('splitMultiPGN separa duas partidas', splitMultiPGN('[Event "A"]\n\n1. e4 *\n\n[Event "B"]\n\n1. d4 *').length === 2);
+
+        if (typeof Chess !== 'undefined') {
+          const testMoves = parseOnePGNToUCI('1. e4 e5 2. Nf3 Nc6 *');
+          assert('chess.js lê PGN simples', testMoves.length === 4);
+          assert('primeiro UCI é e2e4', testMoves[0].uci === 'e2e4');
+        } else {
+          lines.push('AVISO - chess.js não carregou; testes de PGN foram ignorados.');
+        }
+
+        out.textContent = lines.join('\n');
+      } catch (err) {
+        out.textContent = lines.concat('FALHA - ' + err.message).join('\n');
+      }
+    }
+
+    document.getElementById('convertBtn').addEventListener('click', convert);
+    document.getElementById('copyFastaBtn').addEventListener('click', () => {
+      copyText(document.getElementById('fastaOut').textContent, 'FASTA copiado.');
+    });
+    document.getElementById('downloadFastaBtn').addEventListener('click', () => {
+      downloadText('chess_to_dna_multi.fasta', document.getElementById('fastaOut').textContent);
+    });
+    document.getElementById('copyMetadataBtn').addEventListener('click', () => {
+      copyText(document.getElementById('metadataOut').textContent, 'Metadados TSV copiados.');
+    });
+    document.getElementById('downloadMetadataBtn').addEventListener('click', () => {
+      downloadText('chess_to_dna_metadata.tsv', document.getElementById('metadataOut').textContent);
+    });
+      copyText(['#\tID FASTA\tEvento\tBrancas\tPretas\tLances exportados\tLances originais\tnt\tPromoções'].concat(rows).join('\n'), 'Resumo copiado.');
+    });
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      document.getElementById('pgn').value = '';
+      document.getElementById('fastaOut').textContent = '';
+      document.getElementById('uciOut').textContent = '';
+      document.getElementById('errorOut').textContent = '';
+      document.getElementById('metadataOut').textContent = '';
+      document.getElementById('summaryBody').innerHTML = '';
+      document.getElementById('status').textContent = '';
+    });
+    document.getElementById('mapMode').addEventListener('change', () => {
+      renderBoard();
+      if (document.getElementById('fastaOut').textContent.trim()) convert();
+    });
+    document.getElementById('maxFullMoves').addEventListener('change', () => {
+      if (document.getElementById('fastaOut').textContent.trim()) convert();
+    });
+
+    renderBoard();
+    runTests();
+    convert();
+  </script>
+</body>
+</html>
