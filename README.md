@@ -130,3 +130,14 @@ Includes internal tests for:
 Free for experimental and academic use.
 
 ---
+
+## Third Party Licenses 
+
+This project uses the Chess.js library, which is licensed under the BSD 2-Clause License.
+Chess.js: Copyright (c) Jeff Hlywa
+Source: https://github.com/jhlywa/chess.js
+The full license text for Chess.js is included in the LICENSE file of this project.
+
+## Disclaimer
+
+This software is provided "as is", without warranty of any kind. See the LICENSE file for details.
