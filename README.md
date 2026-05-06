@@ -127,7 +127,8 @@ Includes internal tests for:
 
 ## License
 
-Free for experimental and academic use.
+This project is licensed under the MIT License. See the LICENSE file for details.
+
 
 ---
 
@@ -136,7 +137,7 @@ Free for experimental and academic use.
 This project uses the Chess.js library, which is licensed under the BSD 2-Clause License.
 Chess.js: Copyright (c) Jeff Hlywa
 Source: https://github.com/jhlywa/chess.js
-The full license text for Chess.js is included in the LICENSE file of this project.
+The full license text for Chess.js is included in the THIRD_PARTY_LICENSES file of this project.
 
 ## Disclaimer
 
