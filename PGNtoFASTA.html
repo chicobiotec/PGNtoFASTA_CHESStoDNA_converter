@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Multi-PGN para Multi-FASTA | Xadrez para DNA</title>
+  <title>PGN to FASTA | Chess to DNA</title>
   <style>
     :root {
       --bg: #101216;
@@ -148,17 +148,17 @@
 </head>
 <body>
   <main>
-    <h1>Multi-PGN para Multi-FASTA | Xadrez para DNA</h1>
+    <h1>PGN to FASTA | Chess to DNA</h1>
     <p class="subtitle">
-      Pipeline interno: <strong>PGN para UCI para FASTA</strong>. Cole um arquivo PGN contendo uma ou várias partidas.
-      Cada partida vira uma sequência FASTA independente. Cada meio-lance gera dois códons: casa de origem + casa de destino.
-      Promoções são sinalizadas por janelas extras impossíveis do tipo destino-destino, sem quebrar a leitura em pares de códons.
+      Internal pipeline: <strong>PGN to UCI to FASTA</strong>. Paste a PGN file with one or more games.
+      Each game becomes an independent FASTA sequence. Each half-move yields two codons: from-square + to-square.
+      Promotions are signaled by impossible extra destination–destination windows, without breaking reading in codon pairs.
     </p>
 
     <div class="grid">
       <section class="card">
-        <h2>Entrada</h2>
-        <label for="pgn">Cole uma ou várias partidas em PGN</label>
+        <h2>Input</h2>
+        <label for="pgn">Paste one or more games in PGN</label>
         <textarea id="pgn">[Event "Example 1"]
 [White "White"]
 [Black "Black"]
@@ -178,11 +178,11 @@
 
         <div class="row">
           <div>
-            <label for="headerName">Prefixo das sequências FASTA</label>
+            <label for="headerName">FASTA sequence prefix</label>
             <input id="headerName" value="cDNA">
           </div>
           <div>
-            <label for="mapMode">Mapa casa para códon</label>
+            <label for="mapMode">Square-to-codon map</label>
             <select id="mapMode">
               <option value="a1">a1=AAA; a2=AAC; ...; h8=TTT</option>
               <option value="a8">a8=AAA; b8=AAC; ...; h1=TTT</option>
@@ -192,34 +192,34 @@
 
         <div class="row">
           <div>
-            <label for="maxFullMoves">Máximo de lances completos por partida</label>
-            <input id="maxFullMoves" type="number" min="1" step="1" placeholder="Sem limite">
+            <label for="maxFullMoves">Maximum full moves per game</label>
+            <input id="maxFullMoves" type="number" min="1" step="1" placeholder="No limit">
           </div>
           <div>
-            <label for="limitHelp">Interpretação</label>
-            <input id="limitHelp" value="10 = até 20 meio-lances" readonly>
+            <label for="limitHelp">How to read this</label>
+            <input id="limitHelp" value="10 = up to 20 half-moves" readonly>
           </div>
         </div>
 
         <div class="buttons">
-          <button id="convertBtn">Converter PGN para Multi-FASTA</button>
-          <button class="secondary" id="copyFastaBtn">Copiar FASTA</button>
-          <button class="secondary" id="downloadFastaBtn">Baixar .fasta</button>
-          <button class="secondary" id="copyMetadataBtn">Copiar metadados TSV</button>
-          <button class="secondary" id="downloadMetadataBtn">Baixar .tsv</button>
-          <button class="danger" id="clearBtn">Limpar</button>
+          <button id="convertBtn">Convert PGN to multi-FASTA</button>
+          <button class="secondary" id="copyFastaBtn">Copy FASTA</button>
+          <button class="secondary" id="downloadFastaBtn">Download .fasta</button>
+          <button class="secondary" id="copyMetadataBtn">Copy TSV metadata</button>
+          <button class="secondary" id="downloadMetadataBtn">Download .tsv</button>
+          <button class="danger" id="clearBtn">Clear</button>
         </div>
         <div id="status" class="status"></div>
       </section>
 
       <section class="card">
-        <h2>Tabuleiro de referência</h2>
+        <h2>Reference board</h2>
         <div class="board-wrap">
           <div class="rank-labels" id="rankLabels"></div>
           <div class="board" id="board"></div>
           <div class="file-labels" id="fileLabels"></div>
         </div>
-        <p class="small">O mapa é bijetivo: 64 casas para 64 códons.</p>
+        <p class="small">The mapping is bijective: 64 squares to 64 codons.</p>
       </section>
     </div>
 
@@ -228,38 +228,38 @@
         <h2>Multi-FASTA</h2>
         <pre id="fastaOut"></pre>
         <details>
-          <summary>Ver UCI intermediário</summary>
+          <summary>View intermediate UCI</summary>
           <pre id="uciOut"></pre>
         </details>
         <details>
-          <summary>Ver partidas rejeitadas / erros</summary>
+          <summary>View rejected games / errors</summary>
           <pre id="errorOut"></pre>
         </details>
         <details>
-          <summary>Ver metadados TSV</summary>
+          <summary>View TSV metadata</summary>
           <pre id="metadataOut"></pre>
         </details>
         <details>
-          <summary>Ver testes internos</summary>
+          <summary>View internal tests</summary>
           <pre id="testOut"></pre>
         </details>
       </section>
 
       <section class="card">
-        <h2>Resumo das sequências</h2>
+        <h2>Sequence summary</h2>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>#</th>
-                <th>ID FASTA</th>
-                <th>Evento</th>
-                <th>Brancas</th>
-                <th>Pretas</th>
-                <th>Lances exportados</th>
-                <th>Lances originais</th>
+                <th>FASTA ID</th>
+                <th>Event</th>
+                <th>White</th>
+                <th>Black</th>
+                <th>Exported moves</th>
+                <th>Original moves</th>
                 <th>nt</th>
-                <th>Promoções</th>
+                <th>Promotions</th>
               </tr>
             </thead>
             <tbody id="summaryBody"></tbody>
@@ -389,13 +389,13 @@
 
     function parseOnePGNToUCI(pgn) {
       if (typeof Chess === "undefined") {
-        throw new Error("A biblioteca chess.js não foi carregada. Tente rodar por http://localhost ou baixar chess.min.js para a mesma pasta.");
+        throw new Error("The chess.js library failed to load. Try opening this page via http://localhost or save chess.min.js next to this file.");
       }
 
       var chess = new Chess();
       var ok = chess.load_pgn(normalizePGN(pgn), { sloppy: true });
       if (!ok) {
-        throw new Error("Não consegui ler este PGN. Verifique se a notação está completa e válida.");
+        throw new Error("Could not parse this PGN. Check that the notation is complete and valid.");
       }
 
       var hist = chess.history({ verbose: true });
@@ -432,7 +432,7 @@
       var fromCodon = map[m.from];
       var toCodon = map[m.to];
       if (!fromCodon || !toCodon) {
-        throw new Error("Movimento com casa inválida: " + JSON.stringify(m));
+        throw new Error("Move references an invalid square: " + JSON.stringify(m));
       }
 
       var dna = fromCodon + toCodon;
@@ -454,7 +454,7 @@
       var headers = parseHeaders(gameText);
       var allMoves = parseOnePGNToUCI(gameText);
       if (allMoves.length === 0) {
-        throw new Error("Partida sem lances interpretáveis.");
+        throw new Error("Game has no moves that could be interpreted.");
       }
 
       var maxHalfMoves = maxFullMoves ? maxFullMoves * 2 : null;
@@ -487,7 +487,7 @@
     }
 
     function formatError(e) {
-      return "Partida " + e.index + (e.headers.Event ? " (" + e.headers.Event + ")" : "") + ": " + e.message;
+      return "Game " + e.index + (e.headers.Event ? " (" + e.headers.Event + ")" : "") + ": " + e.message;
     }
 
     function tsvEscape(value) {
@@ -552,7 +552,7 @@
         var games = splitMultiPGN(pgnText);
 
         if (games.length === 0) {
-          throw new Error("Nenhuma partida encontrada.");
+          throw new Error("No games found.");
         }
 
         var records = [];
@@ -571,7 +571,7 @@
           var onlyErrors = [];
           for (var e = 0; e < errors.length; e++) onlyErrors.push(formatError(errors[e]));
           byId("errorOut").textContent = onlyErrors.join(NL);
-          throw new Error("Nenhuma partida pôde ser convertida. Veja os erros.");
+          throw new Error("No games could be converted. See errors.");
         }
 
         var fastaParts = [];
@@ -592,7 +592,7 @@
         byId("fastaOut").textContent = fasta;
         byId("uciOut").textContent = uci;
         byId("metadataOut").textContent = metadata;
-        byId("errorOut").textContent = errors.length ? errorLines.join(NL) : "Nenhum erro.";
+        byId("errorOut").textContent = errors.length ? errorLines.join(NL) : "No errors.";
         renderSummary(records);
 
         var totalMoves = 0;
@@ -607,10 +607,10 @@
         }
 
         status.classList.add("ok");
-        status.textContent = "Convertidas " + records.length + "/" + games.length + " partidas; " +
-          totalMoves + " meio-lances exportados de " + totalOriginalMoves + "; " +
-          totalNt + " nucleotídeos; " + totalPromotions + " promoções." +
-          (errors.length ? " Algumas partidas foram rejeitadas." : "");
+        status.textContent = "Converted " + records.length + "/" + games.length + " games; " +
+          totalMoves + " half-moves exported out of " + totalOriginalMoves + "; " +
+          totalNt + " nucleotides; " + totalPromotions + " promotions." +
+          (errors.length ? " Some games were rejected." : "");
       } catch (err) {
         status.classList.add("error");
         status.textContent = err.message;
@@ -682,11 +682,11 @@
           status.textContent = statusMsg;
         }).catch(function () {
           status.className = "status error";
-          status.textContent = "Não consegui copiar automaticamente. Selecione e copie manualmente.";
+          status.textContent = "Could not copy automatically. Select the text and copy manually.";
         });
       } else {
         status.className = "status error";
-        status.textContent = "Área de transferência indisponível neste navegador. Selecione e copie manualmente.";
+        status.textContent = "Clipboard unavailable in this browser. Select the text and copy manually.";
       }
     }
 
@@ -713,38 +713,38 @@
 
       try {
         var map = buildSquareCodonMap("a1");
-        assert("mapa tem a1=AAA", map.a1 === "AAA");
-        assert("mapa tem 64 códons únicos", new Set(Object.values(map)).size === 64);
-        assert("e2e4 gera 6 nt", moveToDNA({ from: "e2", to: "e4", promotion: "" }, map).length === 6);
-        assert("promoção para dama adiciona 4 janelas destino-destino", moveToDNA({ from: "e7", to: "e8", promotion: "q" }, map).length === 30);
-        assert("fastaWrap usa NL corretamente", fastaWrap("ACGT", 2) === "AC" + NL + "GT");
-        assert("splitMultiPGN separa duas partidas", splitMultiPGN("[Event \"A\"]" + NL + NL + "1. e4 *" + NL + NL + "[Event \"B\"]" + NL + NL + "1. d4 *").length === 2);
-        assert("metadata TSV possui cabeçalho", buildMetadataTSV([]).indexOf("id" + TAB + "original_index") === 0);
-        assert("ID curto usa prefixo e número", makeFastaId("cDNA", 12) === "cDNA_0012");
+        assert("map has a1=AAA", map.a1 === "AAA");
+        assert("map has 64 unique codons", new Set(Object.values(map)).size === 64);
+        assert("e2e4 yields 6 nt", moveToDNA({ from: "e2", to: "e4", promotion: "" }, map).length === 6);
+        assert("queen promotion adds 4 destination–destination windows", moveToDNA({ from: "e7", to: "e8", promotion: "q" }, map).length === 30);
+        assert("fastaWrap uses NL correctly", fastaWrap("ACGT", 2) === "AC" + NL + "GT");
+        assert("splitMultiPGN splits two games", splitMultiPGN("[Event \"A\"]" + NL + NL + "1. e4 *" + NL + NL + "[Event \"B\"]" + NL + NL + "1. d4 *").length === 2);
+        assert("metadata TSV has header row", buildMetadataTSV([]).indexOf("id" + TAB + "original_index") === 0);
+        assert("short ID uses prefix and number", makeFastaId("cDNA", 12) === "cDNA_0012");
 
         if (typeof Chess !== "undefined") {
           var testMoves = parseOnePGNToUCI("1. e4 e5 2. Nf3 Nc6 *");
-          assert("chess.js lê PGN simples", testMoves.length === 4);
-          assert("primeiro UCI é e2e4", testMoves[0].uci === "e2e4");
+          assert("chess.js reads simple PGN", testMoves.length === 4);
+          assert("first UCI is e2e4", testMoves[0].uci === "e2e4");
         } else {
-          lines.push("AVISO - chess.js não carregou; testes de PGN foram ignorados.");
+          lines.push("WARNING - chess.js did not load; PGN tests were skipped.");
         }
 
         out.textContent = lines.join(NL);
       } catch (err) {
-        out.textContent = lines.concat("FALHA - " + err.message).join(NL);
+        out.textContent = lines.concat("FAIL - " + err.message).join(NL);
       }
     }
 
     byId("convertBtn").addEventListener("click", convert);
     byId("copyFastaBtn").addEventListener("click", function () {
-      copyText(byId("fastaOut").textContent, "FASTA copiado.");
+      copyText(byId("fastaOut").textContent, "FASTA copied.");
     });
     byId("downloadFastaBtn").addEventListener("click", function () {
       downloadText("chess_to_dna_multi.fasta", byId("fastaOut").textContent);
     });
     byId("copyMetadataBtn").addEventListener("click", function () {
-      copyText(byId("metadataOut").textContent, "Metadados TSV copiados.");
+      copyText(byId("metadataOut").textContent, "TSV metadata copied.");
     });
     byId("downloadMetadataBtn").addEventListener("click", function () {
       downloadText("chess_to_dna_metadata.tsv", byId("metadataOut").textContent);
