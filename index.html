@@ -202,7 +202,7 @@
         </div>
 
         <div class="buttons">
-          <button id="convertBtn">Convert PGN to multi-FASTA</button>
+          <button id="convertBtn">Convert PGN to FASTA</button>
           <button class="secondary" id="copyFastaBtn">Copy FASTA</button>
           <button class="secondary" id="downloadFastaBtn">Download .fasta</button>
           <button class="secondary" id="copyMetadataBtn">Copy TSV metadata</button>
@@ -741,7 +741,7 @@
       copyText(byId("fastaOut").textContent, "FASTA copied.");
     });
     byId("downloadFastaBtn").addEventListener("click", function () {
-      downloadText("chess_to_dna_multi.fasta", byId("fastaOut").textContent);
+      downloadText("chess_to_dna.fasta", byId("fastaOut").textContent);
     });
     byId("copyMetadataBtn").addEventListener("click", function () {
       copyText(byId("metadataOut").textContent, "TSV metadata copied.");
