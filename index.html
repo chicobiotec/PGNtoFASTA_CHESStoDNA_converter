@@ -26,7 +26,23 @@
     }
     main { max-width: 1280px; margin: 0 auto; padding: 28px; }
     h1, h2 { margin-top: 0; }
-    h1 { font-size: clamp(1.8rem, 3vw, 3rem); margin-bottom: 0.25rem; }
+    h1 { font-size: clamp(1.8rem, 3vw, 3rem); margin: 0; }
+    .hero-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 0.25rem;
+    }
+    .hero-head h1 { flex: 1; min-width: 0; }
+    .site-logo {
+      height: clamp(54px, 10.5vw, 78px);
+      width: auto;
+      max-width: min(330px, 57vw);
+      object-fit: contain;
+      flex-shrink: 0;
+      display: block;
+    }
     .subtitle { color: var(--muted); max-width: 1000px; margin-bottom: 24px; }
     .grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 20px; align-items: start; }
     @media (max-width: 920px) { .grid { grid-template-columns: 1fr; } }
@@ -148,7 +164,10 @@
 </head>
 <body>
   <main>
-    <h1>PGN to FASTA | Chess to DNA</h1>
+    <header class="hero-head">
+      <h1>PGN to FASTA | Chess to DNA</h1>
+      <img class="site-logo" src="UTFPR_logo.png" alt="UTFPR">
+    </header>
     <p class="subtitle">
       Internal pipeline: <strong>PGN to UCI to FASTA</strong>. Paste a PGN file with one or more games.
       Each game becomes an independent FASTA sequence. Each half-move yields two codons: from-square + to-square.
